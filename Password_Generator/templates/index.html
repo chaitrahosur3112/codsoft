@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Password Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f5f5f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      color: #1a1a18;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e2e0d8;
+      padding: 2rem;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .pg-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .pg-sub   { font-size: 13px; color: #888780; margin-bottom: 1.75rem; }
+
+    .section-label {
+      font-size: 11px;
+      color: #888780;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .length-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+
+    .length-row input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      background: #e2e0d8;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .length-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #1a1a18;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px #1a1a18;
+    }
+
+    #lenVal { font-size: 15px; font-weight: 600; min-width: 28px; text-align: right; }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .opt-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; cursor: pointer;
+      border: 1px solid #e2e0d8; border-radius: 8px;
+      background: #ffffff; font-size: 13px; color: #5f5e5a;
+      transition: all 0.15s; user-select: none;
+    }
+
+    .opt-btn:hover { background: #f5f5f0; }
+
+    .opt-btn.active {
+      border-color: #85b7eb;
+      background: #e6f1fb;
+      color: #0c447c;
+    }
+
+    .opt-check {
+      width: 15px; height: 15px;
+      border: 1.5px solid currentColor;
+      border-radius: 3px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .opt-btn.active .opt-check::after {
+      content: '';
+      display: block;
+      width: 8px; height: 5px;
+      border-left: 2px solid;
+      border-bottom: 2px solid;
+      transform: rotate(-45deg) translateY(-1px);
+    }
+
+    .pwd-display {
+      background: #f5f5f0;
+      border: 1px solid #e2e0d8;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      word-break: break-all;
+      min-height: 54px;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .placeholder { color: #b4b2a9; font-family: 'Segoe UI', sans-serif; font-size: 13px; letter-spacing: 0; }
+
+    .strength-bar-wrap { display: flex; align-items: center; gap: 4px; margin-bottom: 1.25rem; }
+
+    .s-seg { height: 4px; flex: 1; border-radius: 2px; background: #e2e0d8; transition: background 0.3s; }
+
+    #sLabel { font-size: 12px; color: #888780; min-width: 48px; text-align: right; }
+
+    .btn-row { display: flex; gap: 8px; }
+
+    .btn-gen {
+      flex: 1; padding: 11px;
+      font-size: 14px; font-weight: 600;
+      background: #1a1a18; color: #ffffff;
+      border: none; border-radius: 8px;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+
+    .btn-gen:hover  { opacity: 0.85; }
+    .btn-gen:active { transform: scale(0.98); }
+    .btn-gen.loading { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-copy {
+      padding: 11px 20px; font-size: 13px;
+      border: 1px solid #e2e0d8;
+      background: #ffffff; color: #1a1a18;
+      border-radius: 8px; cursor: pointer; font-weight: 500;
+    }
+
+    .btn-copy:hover { background: #f5f5f0; }
+
+    #toast    { font-size: 12px; color: #1d9e75; height: 20px; margin-top: 8px; text-align: right; }
+    #errorMsg { font-size: 12px; color: #e24b4a; height: 18px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <p class="pg-title">Password Generator</p>
+    <p class="pg-sub">Customize length and character types, then generate.</p>
+
+    <p class="section-label">Password Length</p>
+    <div class="length-row">
+      <input type="range" id="lenRange" min="6" max="64" value="16" step="1"
+             oninput="document.getElementById('lenVal').textContent = this.value">
+      <span id="lenVal">16</span>
+    </div>
+
+    <p class="section-label">Character Types</p>
+    <div class="options-grid">
+      <div class="opt-btn active" id="opt-upper" onclick="toggle('upper')">
+        <span class="opt-check"></span>Uppercase (A–Z)
+      </div>
+      <div class="opt-btn active" id="opt-lower" onclick="toggle('lower')">
+        <span class="opt-check"></span>Lowercase (a–z)
+      </div>
+      <div class="opt-btn active" id="opt-nums" onclick="toggle('nums')">
+        <span class="opt-check"></span>Numbers (0–9)
+      </div>
+      <div class="opt-btn active" id="opt-syms" onclick="toggle('syms')">
+        <span class="opt-check"></span>Symbols (!@#$...)
+      </div>
+    </div>
+
+    <div class="pwd-display" id="pwdDisplay">
+      <span class="placeholder">Click "Generate" to create a password.</span>
+    </div>
+
+    <div class="strength-bar-wrap">
+      <div class="s-seg" id="s1"></div>
+      <div class="s-seg" id="s2"></div>
+      <div class="s-seg" id="s3"></div>
+      <div class="s-seg" id="s4"></div>
+      <span id="sLabel"></span>
+    </div>
+
+    <div id="errorMsg"></div>
+
+    <div class="btn-row">
+      <button class="btn-gen" id="genBtn" onclick="generate()">Generate password</button>
+      <button class="btn-copy" onclick="copyPwd()">Copy</button>
+    </div>
+    <div id="toast"></div>
+  </div>
+
+  <script>
+    const state = { upper: true, lower: true, nums: true, syms: true };
+    let currentPwd = '';
+
+    function toggle(k) {
+      const active = Object.values(state).filter(Boolean).length;
+      if (state[k] && active === 1) return;
+      state[k] = !state[k];
+      document.getElementById('opt-' + k).classList.toggle('active', state[k]);
+    }
+
+    async function generate() {
+      const btn = document.getElementById('genBtn');
+      btn.classList.add('loading');
+      btn.textContent = 'Generating...';
+      document.getElementById('errorMsg').textContent = '';
+
+      const payload = {
+        length: parseInt(document.getElementById('lenRange').value),
+        upper: state.upper,
+        lower: state.lower,
+        nums:  state.nums,
+        syms:  state.syms
+      };
+
+      try {
+        const res  = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          document.getElementById('errorMsg').textContent = data.error || 'Something went wrong.';
+          return;
+        }
+
+        currentPwd = data.password;
+        document.getElementById('pwdDisplay').textContent = currentPwd;
+        updateStrengthBar(data.strength, data.strength_label);
+
+      } catch (err) {
+        document.getElementById('errorMsg').textContent = 'Could not connect to server.';
+      } finally {
+        btn.classList.remove('loading');
+        btn.textContent = 'Generate password';
+      }
+    }
+
+    function updateStrengthBar(score, label) {
+      const colors = ['#E24B4A', '#EF9F27', '#639922', '#1D9E75'];
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('s' + i).style.background =
+          i <= score ? colors[score - 1] : '#e2e0d8';
+      }
+      document.getElementById('sLabel').textContent = label || '';
+    }
+
+    function copyPwd() {
+      if (!currentPwd) return;
+      navigator.clipboard.writeText(currentPwd).then(() => {
+        const t = document.getElementById('toast');
+        t.textContent = 'Copied to clipboard!';
+        setTimeout(() => t.textContent = '', 2000);
+      });
+    }
+  </script>
+</body>
+</html>
